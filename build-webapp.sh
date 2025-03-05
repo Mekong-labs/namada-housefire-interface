@@ -34,6 +34,8 @@ apt-get install -y libssl-dev
 apt-get install -y protobuf-compiler
 
 rustup target add wasm32-unknown-unknown
+rustup toolchain install nightly-2024-09-08-x86_64-unknown-linux-gnu
+rustup default nightly-2024-09-08
 curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
 yarn || exit 1
