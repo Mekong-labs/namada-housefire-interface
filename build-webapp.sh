@@ -32,10 +32,12 @@ apt-get install -y pkg-config
 apt-get install -y libssl-dev
 apt-get install -y protobuf-compiler
 apt-get install -y curl
+apt-get install -y npm
 
 rustup target add wasm32-unknown-unknown
 rustup component add rust-src --toolchain nightly-2024-09-08-x86_64-unknown-linux-gnu
 curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+npm install -g yarn
 
 yarn || exit 1
 yarn prepare || exit 1
