@@ -23,7 +23,6 @@ if [[ -d "$DEST_DIR" ]]; then
 fi
 
 # from the namada-interface README, modified for compatibility
-apt-get install -y curl
 
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source "$HOME/.cargo/env"
@@ -32,10 +31,10 @@ apt-get install -y clang
 apt-get install -y pkg-config
 apt-get install -y libssl-dev
 apt-get install -y protobuf-compiler
+apt-get install -y curl
 
 rustup target add wasm32-unknown-unknown
-rustup toolchain install nightly-2024-09-08-x86_64-unknown-linux-gnu
-rustup default nightly-2024-09-08
+rustup component add rust-src --toolchain nightly-2024-09-08-x86_64-unknown-linux-gnu
 curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
 yarn || exit 1
