@@ -42,8 +42,8 @@ npm install -g yarn
 yarn || exit 1
 yarn prepare || exit 1
 
-yarn --cwd ${PKG_DIR} wasm:build || exit 1
-yarn --cwd ${PKG_DIR} build || exit 1
+yarn --cwd ${PKG_DIR} wasm:build:multicore || exit 1
+yarn --cwd ${PKG_DIR} build:only || exit 1
 
 if [[ ! -d "$OUTPUT_DIR" ]]; then
   echo "Missing output directory: $OUTPUT_DIR" 1>&2
