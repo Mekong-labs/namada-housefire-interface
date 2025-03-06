@@ -23,7 +23,7 @@ if [[ -d "$DEST_DIR" ]]; then
 fi
 
 # from the namada-interface README, modified for compatibility
-
+apt-get install -y curl
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source "$HOME/.cargo/env"
 
@@ -31,7 +31,6 @@ apt-get install -y clang
 apt-get install -y pkg-config
 apt-get install -y libssl-dev
 apt-get install -y protobuf-compiler
-apt-get install -y curl
 apt-get install -y npm
 
 rustup target add wasm32-unknown-unknown
