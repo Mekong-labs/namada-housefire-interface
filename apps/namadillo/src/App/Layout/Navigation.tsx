@@ -1,5 +1,4 @@
 import { SidebarMenuItem } from "App/Common/SidebarMenuItem";
-import { MASPIcon } from "App/Icons/MASPIcon";
 import { routes } from "App/routes";
 import { applicationFeaturesAtom } from "atoms/settings";
 import { useAtomValue } from "jotai";
@@ -18,7 +17,7 @@ export const Navigation = (): JSX.Element => {
 
   const menuItems: { label: string; icon: React.ReactNode; url?: string }[] = [
     {
-      label: "Overview",
+      label: "Manage Assets",
       icon: <AiFillHome />,
       url: routes.root,
     },
@@ -31,11 +30,6 @@ export const Navigation = (): JSX.Element => {
       label: "Governance",
       icon: <FaVoteYea />,
       url: routes.governance,
-    },
-    {
-      label: "MASP",
-      icon: <MASPIcon />,
-      url: features.maspEnabled ? routes.masp : undefined,
     },
     {
       label: "IBC Transfer",
@@ -61,7 +55,7 @@ export const Navigation = (): JSX.Element => {
   ];
 
   return (
-    <div className="h-full flex flex-col justify-between flex-1 pt-6 pb-8 px-6">
+    <div className="min-h-full flex flex-col justify-between gap-10 p-6 pb-8">
       <ul className="flex flex-col gap-4">
         {menuItems.map((item) => (
           <li key={item.label}>
