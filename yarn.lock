@@ -3557,10 +3557,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@namada/chain-registry@npm:^1.0.0":
-  version: 1.1.0
-  resolution: "@namada/chain-registry@npm:1.1.0"
-  checksum: 10c0/5a9d94c1963cf6d9269281fba77a13fa2b3e3a1d8181b02ce628bae14e004a4ebb0ecf6fa901597d7f3e16b7136303d71447fa11ce19d1583d9208e43afd1ed4
+"@namada/chain-registry@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "@namada/chain-registry@npm:1.2.0"
+  checksum: 10c0/23f571f9d5358cad747024df262ac0ef3d8c6fd1fa3d3d6ef145801883173b7b48e6f25acf32a4876b682d7138afa6db71971100fe2a9fc6c73c53b2e1da9232
   languageName: node
   linkType: hard
 
@@ -3780,12 +3780,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@namada/indexer-client@npm:2.5.2":
-  version: 2.5.2
-  resolution: "@namada/indexer-client@npm:2.5.2"
+"@namada/indexer-client@npm:3.0.1":
+  version: 3.0.1
+  resolution: "@namada/indexer-client@npm:3.0.1"
   dependencies:
     axios: "npm:^1.6.1"
-  checksum: 10c0/2ef90e5456f819d1cee0517bc89ef1b07fd1d70ba1bf16db9fba2562068daaf5c88fb64efbcb987448c4bf91b1a3afd2a7de5497220ee32166dedade68e39ddf
+  checksum: 10c0/7b1212f3eab53db800dadaf94df62edfbe5d852110506fcd254eee6c4947449abfb98df273c71801a12fd4c98c2c51f830967d5ee58ce6663649f357f044434c
   languageName: node
   linkType: hard
 
@@ -3826,8 +3826,8 @@ __metadata:
     "@cosmjs/encoding": "npm:^0.32.3"
     "@eslint/js": "npm:^9.9.1"
     "@keplr-wallet/types": "npm:^0.12.136"
-    "@namada/chain-registry": "npm:^1.0.0"
-    "@namada/indexer-client": "npm:2.5.2"
+    "@namada/chain-registry": "npm:^1.2.0"
+    "@namada/indexer-client": "npm:3.0.1"
     "@playwright/test": "npm:^1.24.1"
     "@svgr/webpack": "npm:^6.5.1"
     "@tailwindcss/container-queries": "npm:^0.1.1"
