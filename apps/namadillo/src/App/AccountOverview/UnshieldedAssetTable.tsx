@@ -20,6 +20,7 @@ import { TbVectorTriangle } from "react-icons/tb";
 import { Link } from "react-router-dom";
 import { twMerge } from "tailwind-merge";
 import { isNamadaAsset } from "utils";
+import { sortedTableData } from "./common";
 
 const resultsPerPage = 100;
 const initialPage = 0;
@@ -89,7 +90,7 @@ const TransparentTokensTable = ({
             <div className="relative group/tooltip">
               <ActionButton
                 size="xs"
-                href={`${routes.maspShield}?${params.asset}=${originalAddress}`}
+                href={`${routes.shield}?${params.asset}=${originalAddress}`}
               >
                 Shield
               </ActionButton>
@@ -151,7 +152,8 @@ const TransparentTokensTable = ({
     setPage(0);
   }, [data]);
 
-  const paginatedItems = data.slice(
+  const sortedData = sortedTableData(data);
+  const paginatedItems = sortedData.slice(
     page * resultsPerPage,
     page * resultsPerPage + resultsPerPage
   );

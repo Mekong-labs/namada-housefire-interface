@@ -22,7 +22,6 @@ import {
   addLocalnetToRegistry,
   getDenomFromIbcTrace,
   getKnownChains,
-  ibcAddressToDenomTrace,
   IbcChannels,
   mapCoinsToAssets,
 } from "./functions";
@@ -84,11 +83,8 @@ export const assetBalanceAtomFamily = atomFamily(
       ...queryDependentFn(async () => {
         return await queryAndStoreRpc(chain!, async (rpc: string) => {
           const assetsBalances = await queryAssetBalances(walletAddress!, rpc);
-          return await mapCoinsToAssets(
-            assetsBalances,
-            chain!.chain_id,
-            ibcAddressToDenomTrace(rpc)
-          );
+
+          return await mapCoinsToAssets(assetsBalances, chain!.chain_id);
         });
       }, [!!walletAddress, !!chain]),
     }));
@@ -148,7 +144,7 @@ export const enabledIbcAssetsDenomFamily = atomFamily((ibcChannel?: string) => {
           return false;
         });
 
-        const availableTokens: string[] = ["nam"];
+        const availableTokens: string[] = ["nam", "unam"];
         channelAvailableTokens.forEach((token) => {
           const ibcRateLimit = ibcRateLimits.data?.find(
             (rateLimit) => rateLimit.tokenAddress === token.address

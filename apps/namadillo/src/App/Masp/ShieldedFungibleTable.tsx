@@ -4,6 +4,7 @@ import {
   TableRow,
   Tooltip,
 } from "@namada/components";
+import { sortedTableData } from "App/AccountOverview/common";
 import { FiatCurrency } from "App/Common/FiatCurrency";
 import { TableWithPaginator } from "App/Common/TableWithPaginator";
 import { TokenCard } from "App/Common/TokenCard";
@@ -60,7 +61,7 @@ export const ShieldedFungibleTable = ({
           key={`balance-${originalAddress}`}
           className="flex flex-col text-right leading-tight"
         >
-          {amount.toString()}
+          <TokenCurrency symbol={asset.symbol} amount={amount} />
           {dollar && (
             <FiatCurrency
               className="text-neutral-600 text-sm"
@@ -94,7 +95,9 @@ export const ShieldedFungibleTable = ({
             size="xs"
             outlineColor="white"
             className="w-fit ml-auto mr-10"
-            onClick={() => navigate(routes.maspUnshield)}
+            onClick={() =>
+              navigate(`${routes.unshield}?${params.asset}=${originalAddress}`)
+            }
           >
             Unshield
           </ActionButton>
@@ -124,7 +127,8 @@ export const ShieldedFungibleTable = ({
     setPage(0);
   }, [data]);
 
-  const paginatedItems = data.slice(
+  const sortedData = sortedTableData(data);
+  const paginatedItems = sortedData.slice(
     page * resultsPerPage,
     page * resultsPerPage + resultsPerPage
   );
