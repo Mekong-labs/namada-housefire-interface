@@ -10,7 +10,8 @@ import { TableWithPaginator } from "App/Common/TableWithPaginator";
 import { TokenCard } from "App/Common/TokenCard";
 import { TokenCurrency } from "App/Common/TokenCurrency";
 import { params, routes } from "App/routes";
-import { TokenBalance, transparentTokensAtom } from "atoms/balance/atoms";
+import { transparentTokensAtom } from "atoms/balance/atoms";
+import { tokenPricesFamily } from "atoms/prices/atoms";
 import { applicationFeaturesAtom } from "atoms/settings";
 import { useBalances } from "hooks/useBalances";
 import { useAtomValue } from "jotai";
@@ -19,6 +20,7 @@ import { IoSwapHorizontal } from "react-icons/io5";
 import { TbVectorTriangle } from "react-icons/tb";
 import { Link } from "react-router-dom";
 import { twMerge } from "tailwind-merge";
+import { TokenBalance } from "types";
 import { isNamadaAsset } from "utils";
 import { sortedTableData } from "./common";
 
@@ -33,6 +35,14 @@ const TransparentTokensTable = ({
   const [page, setPage] = useState(initialPage);
   const { namTransfersEnabled } = useAtomValue(applicationFeaturesAtom);
   const { bondedAmount } = useBalances();
+
+  // Get token prices for calculating staked balance dollar amounts
+  const tokenAddresses = useMemo(
+    () => data.map((item) => item.address),
+    [data]
+  );
+  const tokenPricesQuery = useAtomValue(tokenPricesFamily(tokenAddresses));
+
   const headers = [
     "Token",
     { children: "Balance", className: "text-right" },
@@ -40,22 +50,24 @@ const TransparentTokensTable = ({
   ];
 
   const renderRow = ({
-    originalAddress,
+    address,
     asset,
     amount,
     dollar,
   }: TokenBalance): TableRow => {
     const isNam = isNamadaAsset(asset);
     const namTransferLocked = isNam && !namTransfersEnabled;
+
+    // Calculate the dollar amount for staked balance
+    const tokenPrice = tokenPricesQuery.data?.[address];
+    const stakedDollar =
+      tokenPrice && isNam ? bondedAmount.multipliedBy(tokenPrice) : undefined;
+
     return {
       cells: [
-        <TokenCard
-          key={`token-${originalAddress}`}
-          address={originalAddress}
-          asset={asset}
-        />,
+        <TokenCard key={`token-${address}`} address={address} asset={asset} />,
         <div
-          key={`balance-${originalAddress}`}
+          key={`balance-${address}`}
           className="flex flex-col text-right leading-tight"
         >
           <TokenCurrency symbol={asset.symbol} amount={amount} />
@@ -67,30 +79,30 @@ const TransparentTokensTable = ({
           )}
         </div>,
         <div
-          key={`balance-${originalAddress}`}
+          key={`staked-balance-${address}`}
           className="flex flex-col text-right leading-tight"
         >
           {isNam ?
             <>
               <TokenCurrency symbol={asset.symbol} amount={bondedAmount} />
-              {dollar && (
+              {stakedDollar && (
                 <FiatCurrency
                   className="text-neutral-600 text-sm"
-                  amount={dollar}
+                  amount={stakedDollar}
                 />
               )}
             </>
           : null}
         </div>,
         <div
-          key={`buttons-${originalAddress}`}
+          key={`buttons-${address}`}
           className="flex items-center justify-end gap-1"
         >
           {(!isNam || namTransfersEnabled) && (
             <div className="relative group/tooltip">
               <ActionButton
                 size="xs"
-                href={`${routes.shield}?${params.asset}=${originalAddress}`}
+                href={`${routes.shield}?${params.asset}=${address}`}
               >
                 Shield
               </ActionButton>
@@ -113,11 +125,11 @@ const TransparentTokensTable = ({
               <span className="text-xs">NAM Transfer Locked</span>
             : [
                 {
-                  url: `${routes.transfer}?${params.asset}=${originalAddress}&${params.shielded}=0`,
+                  url: `${routes.transfer}?${params.asset}=${address}&${params.shielded}=0`,
                   icon: <IoSwapHorizontal className="h-[20px] w-[20px]" />,
                 },
                 {
-                  url: `${routes.ibcWithdraw}?${params.asset}=${originalAddress}`,
+                  url: `${routes.ibcWithdraw}?${params.asset}=${address}`,
                   icon: (
                     <TbVectorTriangle className="h-[20px] w-[20px] -mt-1" />
                   ),

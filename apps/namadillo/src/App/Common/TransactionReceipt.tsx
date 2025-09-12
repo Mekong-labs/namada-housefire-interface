@@ -1,5 +1,6 @@
 import { Chain } from "@chain-registry/types";
 import { CopyToClipboardControl, Stack } from "@namada/components";
+import { PseudoExtendedKey } from "@namada/sdk-multicore";
 import { shortenAddress } from "@namada/utils";
 import {
   isNamadaAddress,
@@ -10,7 +11,7 @@ import { SelectedChain } from "App/Transfer/SelectedChain";
 import { SelectedWallet } from "App/Transfer/SelectedWallet";
 import { TokenAmountCard } from "App/Transfer/TokenAmountCard";
 import { TransferArrow } from "App/Transfer/TransferArrow";
-import { findChainById } from "atoms/integrations";
+import { getChainRegistryByChainId } from "atoms/integrations";
 import BigNumber from "bignumber.js";
 import clsx from "clsx";
 import { wallets } from "integrations";
@@ -41,12 +42,15 @@ const TransferTransactionReceipt = ({
   transaction,
 }: TransactionReceiptProps): JSX.Element => {
   const getChain = (chainId: string, address: string): Chain | undefined => {
-    const chain = findChainById(chainId);
+    const chain = getChainRegistryByChainId(chainId)?.chain;
     if (isNamadaAddress(address) && chain) {
       return parseChainInfo(chain, isShieldedAddress(address || ""));
     }
     return chain;
   };
+
+  const isExtendedKey = (address: string): boolean =>
+    PseudoExtendedKey.can_decode(address);
 
   const sourceChain = useMemo(() => {
     return getChain(transaction.chainId, transaction.sourceAddress || "");
@@ -61,8 +65,18 @@ const TransferTransactionReceipt = ({
     );
   }, [transaction]);
 
+  const getEncodedViewingKey = (address: string): string => {
+    const decodedPseudokey = PseudoExtendedKey.decode(address);
+    const encodedViewingKey = decodedPseudokey.to_viewing_key().encode();
+    return encodedViewingKey;
+  };
+
+  // Used whenever the source funds are coming from the shielded pool
   const sourceWallet =
-    isNamadaAddress(transaction.sourceAddress || "") ?
+    (
+      isNamadaAddress(transaction.sourceAddress || "") ||
+      isExtendedKey(transaction.sourceAddress || "")
+    ) ?
       wallets.namada
     : wallets.keplr;
 
@@ -84,8 +98,12 @@ const TransferTransactionReceipt = ({
           {sourceWallet && (
             <SelectedWallet
               wallet={sourceWallet}
-              address={transaction.sourceAddress}
-              displayTooltip={!transaction.sourceAddress?.includes("shielded")}
+              address={
+                isExtendedKey(transaction.sourceAddress || "") ?
+                  getEncodedViewingKey(transaction.sourceAddress || "")
+                : transaction.sourceAddress
+              }
+              displayTooltip={!isExtendedKey(transaction.sourceAddress || "")}
             />
           )}
         </header>

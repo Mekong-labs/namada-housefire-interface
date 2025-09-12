@@ -1,11 +1,10 @@
-import { Asset } from "@chain-registry/types";
 import {
-  AccountType,
-  ShieldedTransferMsgValue,
-  ShieldingTransferMsgValue,
-  TransparentTransferMsgValue,
-  UnshieldingTransferMsgValue,
-} from "@namada/types";
+  ShieldedTransferProps,
+  ShieldingTransferProps,
+  TransparentTransferProps,
+  UnshieldingTransferProps,
+} from "@namada/sdk-multicore";
+import { AccountType } from "@namada/types";
 import { routes } from "App/routes";
 import { isShieldedAddress } from "App/Transfer/common";
 import { allDefaultAccountsAtom } from "atoms/accounts";
@@ -25,7 +24,7 @@ import { useAtomValue } from "jotai";
 import { TransactionPair } from "lib/query";
 import { useMemo, useState } from "react";
 import { generatePath, useNavigate } from "react-router-dom";
-import { Address, NamadaTransferTxKind } from "types";
+import { Address, Asset, NamadaTransferTxKind } from "types";
 import { isNamadaAsset, toBaseAmount } from "utils";
 import { useOptimisticTransferUpdate } from "./useOptimisticTransferUpdate";
 
@@ -39,10 +38,10 @@ type useTransferParams = {
 } & UseTransactionPropsEvents<unknown>;
 
 type useTransferOutput = (
-  | UseTransactionOutput<TransparentTransferMsgValue>
-  | UseTransactionOutput<ShieldedTransferMsgValue>
-  | UseTransactionOutput<ShieldingTransferMsgValue>
-  | UseTransactionOutput<UnshieldingTransferMsgValue>
+  | UseTransactionOutput<TransparentTransferProps>
+  | UseTransactionOutput<ShieldedTransferProps>
+  | UseTransactionOutput<ShieldingTransferProps>
+  | UseTransactionOutput<UnshieldingTransferProps>
 ) & {
   txKind: NamadaTransferTxKind;
   txHash?: string;

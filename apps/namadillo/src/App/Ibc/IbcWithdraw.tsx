@@ -1,5 +1,6 @@
-import { Asset, Chain } from "@chain-registry/types";
-import { AccountType, IbcTransferMsgValue } from "@namada/types";
+import { Chain } from "@chain-registry/types";
+import { IbcTransferProps } from "@namada/sdk-multicore";
+import { AccountType } from "@namada/types";
 import { mapUndefined } from "@namada/utils";
 import { params, routes } from "App/routes";
 import {
@@ -15,11 +16,11 @@ import {
   namadaShieldedAssetsAtom,
   namadaTransparentAssetsAtom,
 } from "atoms/balance";
-import { chainAtom, chainTokensAtom } from "atoms/chain";
+import { chainAtom } from "atoms/chain";
 import {
-  getDenomFromIbcTrace,
+  getChainRegistryByChainName,
   ibcChannelsFamily,
-  searchChainByDenom,
+  namadaChainRegistryAtom,
 } from "atoms/integrations";
 import { ledgerStatusDataAtom } from "atoms/ledger";
 import { createIbcTxAtom } from "atoms/transfer/atoms";
@@ -42,8 +43,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { TransactionPair } from "lib/query";
 import { useEffect, useState } from "react";
 import { generatePath, useNavigate } from "react-router-dom";
-import namadaChainRegistry from "registry/namada.json";
-import { IbcTransferTransactionData, TransferStep } from "types";
+import { Asset, IbcTransferTransactionData, TransferStep } from "types";
 import {
   isNamadaAsset,
   toBaseAmount,
@@ -64,6 +64,8 @@ export const IbcWithdraw = (): JSX.Element => {
   const transparentAccount = useAtomValue(defaultAccountAtom);
   const namadaChain = useAtomValue(chainAtom);
   const [ledgerStatus, setLedgerStatusStop] = useAtom(ledgerStatusDataAtom);
+  const namadaChainRegistry = useAtomValue(namadaChainRegistryAtom);
+  const chain = namadaChainRegistry.data?.chain;
 
   const requiresNewShieldedSync = useRequiresNewShieldedSync();
   const [generalErrorMessage, setGeneralErrorMessage] = useState("");
@@ -82,7 +84,6 @@ export const IbcWithdraw = (): JSX.Element => {
   const [destinationChain, setDestinationChain] = useState<Chain | undefined>();
   const { refetch: genDisposableSigner } = useAtomValue(disposableSignerAtom);
   const alias = shieldedAccount?.alias ?? transparentAccount.data?.alias;
-  const chainTokens = useAtomValue(chainTokensAtom);
 
   const { data: availableAssets, isLoading: isLoadingAssets } = useAtomValue(
     shielded ? namadaShieldedAssetsAtom : namadaTransparentAssetsAtom
@@ -121,20 +122,26 @@ export const IbcWithdraw = (): JSX.Element => {
     connectToChainId(defaultChainId);
   };
 
-  useTransactionEventListener("IbcWithdraw.Success", async (e) => {
-    if (txHash && e.detail.hash === txHash) {
-      setCompletedAt(new Date());
-      // We are clearing the disposable signer only if the transaction was successful on the target chain
-      if (shielded && refundTarget) {
-        await clearDisposableSigner(refundTarget);
+  useTransactionEventListener(
+    ["IbcWithdraw.Success", "ShieldedIbcWithdraw.Success"],
+    async (e) => {
+      if (txHash && e.detail.hash === txHash) {
+        setCompletedAt(new Date());
+        // We are clearing the disposable signer only if the transaction was successful on the target chain
+        if (shielded && refundTarget) {
+          await clearDisposableSigner(refundTarget);
+        }
+        trackEvent(`${shielded ? "Shielded " : ""}IbcWithdraw: tx complete`);
       }
-      trackEvent(`${shielded ? "Shielded " : ""}IbcWithdraw: tx complete`);
     }
-  });
+  );
 
-  useTransactionEventListener("IbcWithdraw.Error", () => {
-    trackEvent(`${shielded ? "Shielded " : ""}IbcWithdraw: tx error`);
-  });
+  useTransactionEventListener(
+    ["IbcWithdraw.Error", "ShieldedIbcWithdraw.Error"],
+    () => {
+      trackEvent(`${shielded ? "Shielded " : ""}IbcWithdraw: tx error`);
+    }
+  );
 
   const redirectToTimeline = (): void => {
     if (txHash) {
@@ -170,26 +177,29 @@ export const IbcWithdraw = (): JSX.Element => {
   // ATOM to Cosmoshub, etc.
   useEffect(() => {
     (async () => {
-      if (!selectedAsset || !chainTokens.data) {
+      if (!selectedAsset) {
         await updateDestinationChainAndAddress(undefined);
         return;
       }
 
-      const token = chainTokens.data.find(
-        (token) => token.address === selectedAsset.originalAddress
-      );
-
       let chain: Chain | undefined;
+
       if (isNamadaAsset(selectedAsset.asset)) {
         chain = osmosis.chain; // for now, NAM uses the osmosis chain
-      } else if (token && "trace" in token) {
-        const denom = getDenomFromIbcTrace(token.trace);
-        chain = searchChainByDenom(denom);
+      } else if (selectedAsset.asset.traces) {
+        const trace = selectedAsset.asset.traces.find(
+          (trace) => trace.type === "ibc"
+        );
+
+        if (trace) {
+          const chainName = trace.counterparty.chain_name;
+          chain = getChainRegistryByChainName(chainName)?.chain;
+        }
       }
 
       await updateDestinationChainAndAddress(chain);
     })();
-  }, [selectedAsset, chainTokens.data]);
+  }, [selectedAsset]);
 
   const {
     execute: performWithdraw,
@@ -266,17 +276,21 @@ export const IbcWithdraw = (): JSX.Element => {
   });
 
   const storeTransferTransaction = (
-    tx: TransactionPair<IbcTransferMsgValue>,
+    tx: TransactionPair<IbcTransferProps>,
     displayAmount: BigNumber,
     destinationChainId: string,
     asset: Asset
   ): IbcTransferTransactionData => {
-    const props = tx.encodedTxData.meta?.props[0];
-    invariant(props, "Invalid transaction data");
+    // We have to use the last element from lists in case we revealPK
+    const props = tx.encodedTxData.meta?.props.pop();
+    const lastTx = tx.encodedTxData.txs.pop();
+    invariant(props && lastTx, "Invalid transaction data");
+    const lastInnerTxHash = lastTx.innerTxHashes.pop();
+    invariant(lastInnerTxHash, "Inner tx not found");
 
     const transferTransaction: IbcTransferTransactionData = {
-      hash: tx.encodedTxData.txs[0].hash,
-      innerHash: tx.encodedTxData.txs[0].innerTxHashes[0].toLowerCase(),
+      hash: lastTx.hash,
+      innerHash: lastInnerTxHash.toLowerCase(),
       currentStep: TransferStep.WaitingConfirmation,
       rpc: "",
       type: shielded ? "ShieldedToIbc" : "TransparentToIbc",
@@ -335,7 +349,7 @@ export const IbcWithdraw = (): JSX.Element => {
             amountInBaseDenom,
             channelId: sourceChannel.trim(),
             portId: "transfer",
-            token: selectedAsset.originalAddress,
+            token: selectedAsset.asset.address,
             source,
             receiver: destinationAddress,
             gasSpendingKey,
@@ -356,9 +370,7 @@ export const IbcWithdraw = (): JSX.Element => {
       <header className="flex flex-col items-center text-center mb-8 gap-6">
         <IbcTopHeader type="namToIbc" isShielded={shielded} />
       </header>
-      <div className="mb-6">
-        <IbcTabNavigation />
-      </div>
+      <div className="mb-6">{!completedAt && <IbcTabNavigation />}</div>
       <TransferModule
         source={{
           isLoadingAssets,
@@ -367,9 +379,9 @@ export const IbcWithdraw = (): JSX.Element => {
             shielded ?
               shieldedAccount?.address
             : transparentAccount.data?.address,
-          chain: namadaChainRegistry as Chain,
+          chain,
           isShieldedAddress: shielded,
-          availableChains: [namadaChainRegistry as Chain],
+          availableChains: chain ? [chain] : [],
           availableAssets,
           availableAmount,
           selectedAssetAddress,
@@ -406,7 +418,7 @@ export const IbcWithdraw = (): JSX.Element => {
            * from the confirmation event from target chain */
           isSuccess
         }
-        isIbcTransfer={true}
+        ibcTransfer={"withdraw"}
         requiresIbcChannels={requiresIbcChannels}
         ibcOptions={{
           sourceChannel,

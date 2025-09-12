@@ -6,22 +6,44 @@ import {
 } from "@namada/components";
 import { sortedTableData } from "App/AccountOverview/common";
 import { FiatCurrency } from "App/Common/FiatCurrency";
+import { IconTooltip } from "App/Common/IconTooltip";
 import { TableWithPaginator } from "App/Common/TableWithPaginator";
 import { TokenCard } from "App/Common/TokenCard";
 import { TokenCurrency } from "App/Common/TokenCurrency";
 import { params, routes } from "App/routes";
-import { TokenBalance } from "atoms/balance/atoms";
 import { applicationFeaturesAtom } from "atoms/settings/atoms";
 import BigNumber from "bignumber.js";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
+import { FaExclamation } from "react-icons/fa6";
 import { IoSwapHorizontal } from "react-icons/io5";
 import { Link, useNavigate } from "react-router-dom";
 import { twMerge } from "tailwind-merge";
+import { TokenBalance } from "types";
 import { namadaAsset } from "utils";
 
 const resultsPerPage = 100;
 const initialPage = 0;
+
+// Minimum thresholds to earn rewards for each asset
+const REWARD_THRESHOLDS: Record<string, BigNumber> = {
+  statom: new BigNumber(10),
+  stosmo: new BigNumber(100),
+  sttia: new BigNumber(20),
+  osmo: new BigNumber(100),
+  atom: new BigNumber(10),
+  tia: new BigNumber(20),
+  usdc: new BigNumber(50),
+};
+
+// Check if amount is below the minimum threshold to earn rewards
+const isBelowRewardThreshold = (
+  assetSymbol: string,
+  amount: BigNumber
+): boolean => {
+  const threshold = REWARD_THRESHOLDS[assetSymbol.toLowerCase()];
+  return threshold ? amount.lt(threshold) : false;
+};
 
 export const ShieldedFungibleTable = ({
   data,
@@ -43,22 +65,18 @@ export const ShieldedFungibleTable = ({
   }
 
   const renderRow = ({
-    originalAddress,
+    address,
     asset,
     amount,
     dollar,
   }: TokenBalance): TableRow => {
-    const reward = rewards?.[originalAddress];
-
+    const reward = rewards?.[address];
+    const belowThreshold = isBelowRewardThreshold(asset.symbol, amount);
     return {
       cells: [
-        <TokenCard
-          key={`token-${originalAddress}`}
-          address={originalAddress}
-          asset={asset}
-        />,
+        <TokenCard key={`token-${address}`} address={address} asset={asset} />,
         <div
-          key={`balance-${originalAddress}`}
+          key={`balance-${address}`}
           className="flex flex-col text-right leading-tight"
         >
           <TokenCurrency symbol={asset.symbol} amount={amount} />
@@ -70,17 +88,29 @@ export const ShieldedFungibleTable = ({
           )}
         </div>,
         <div
-          key={`ssr-rate-${originalAddress}`}
-          className="text-right leading-tight "
+          key={`ssr-rate-${address}`}
+          className="text-right leading-tight relative"
         >
           {shieldingRewardsEnabled &&
+            REWARD_THRESHOLDS[asset.symbol.toLowerCase()] &&
             (reward ?
-              <TokenCurrency
-                symbol={namadaAsset().symbol}
-                amount={reward}
-                className="text-yellow"
-                decimalPlaces={reward.isZero() ? 0 : 3}
-              />
+              <div className="flex items-center justify-end gap-2">
+                <TokenCurrency
+                  symbol={namadaAsset().symbol}
+                  amount={reward}
+                  className="text-yellow"
+                  decimalPlaces={reward.isZero() ? 0 : 3}
+                />
+                {belowThreshold && (
+                  <IconTooltip
+                    className="bg-yellow text-black"
+                    icon={<FaExclamation />}
+                    text={`${REWARD_THRESHOLDS[asset.symbol.toLowerCase()]} ${asset.symbol} required to earn rewards`}
+                    tooltipClassName="w-fit px-2 py-1 -mr-2"
+                    tooltipPosition="right"
+                  />
+                )}
+              </div>
             : <SkeletonLoading
                 width="120px"
                 height="20px"
@@ -88,7 +118,7 @@ export const ShieldedFungibleTable = ({
               />)}
         </div>,
         <div
-          key={`unshield-${originalAddress}`}
+          key={`unshield-${address}`}
           className="flex items-center text-neutral-450"
         >
           <ActionButton
@@ -96,17 +126,14 @@ export const ShieldedFungibleTable = ({
             outlineColor="white"
             className="w-fit ml-auto mr-10"
             onClick={() =>
-              navigate(`${routes.unshield}?${params.asset}=${originalAddress}`)
+              navigate(`${routes.unshield}?${params.asset}=${address}`)
             }
           >
             Unshield
           </ActionButton>
-          <div
-            key={`swap-${originalAddress}`}
-            className="relative group/tooltip mr-5"
-          >
+          <div key={`swap-${address}`} className="relative group/tooltip mr-5">
             <Link
-              to={`${routes.transfer}?${params.asset}=${originalAddress}&${params.shielded}=0`}
+              to={`${routes.transfer}?${params.asset}=${address}&${params.shielded}=0`}
               className={twMerge(
                 "bg-black rounded-full w-10 h-10 flex items-center justify-center p-0",
                 "hover:bg-white hover:text-black transition-all duration-300"
