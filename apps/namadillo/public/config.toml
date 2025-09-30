@@ -1,6 +1,6 @@
 # Uncomment the following lines to define your default indexer and rpc urls
-indexer_url = "https://indexer.housefire.tududes.com"
-rpc_url = "https://rpc.housefire.tududes.com"
-masp_indexer_url = "https://masp.housefire.tududes.com"
+indexer_url = "https://namada-housefire-indexer.denodes.xyz"
+rpc_url = "https://namada-housefire-rpc.denodes.xyz"
+masp_indexer_url = "https://namada-housefire-masp-indexer.denodes.xyz"
 #localnet_enabled = false
 #fathom_site_id = ""
